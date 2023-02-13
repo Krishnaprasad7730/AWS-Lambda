@@ -1,0 +1,56 @@
+1. Create a function.(Author from scratch)
+2. Name the function.
+3. Choose the runtime as python latest version.
+4. Let the architecture be as x86_64 only.
+5. Create a Iam role and give the permissions as below for the role:
+   a. Ec2 Fullaccess
+   b. S3 Fullaccess.
+   c. Aws Lambda Execute.
+   d. Ses Full access.
+6. Click on create role.
+7. Now go to the code and paste the following code:
+    This python script is for s3:
+    import boto3
+    import json 
+    def lambda_handler(event, context):
+    for e in event["Records"]:
+        bucketName = e["s3"]["bucket"]["name"]
+        objectName = e["s3"]["object"]["key"]
+        eventName = e["eventName"]
+    bClient = boto3.client("ses")
+    eSubject = 'AWS Lab' + str(eventName) + 'Event'
+    eBody = """<br>
+        Hi User,<br>
+        Welcome to engineering team !!!<br>
+        We are here to notify you that {} an event was triggered.<br>
+        Bucket name : {} <br>
+        Object name : {}<br>
+    """.format(eventName, bucketName, objectName)
+    send = {"Subject": {"Data": eSubject}, "Body": {"Html": {"Data": eBody}}}
+    result = bClient.send_email(Source= "sathishkumar231297@gmail.com", Destination= {"ToAddresses": ["sathishkumar231297@gmail.com"]}, Message= send)
+    # TODO implement
+    return {
+        'statusCode': 200,
+        'body': json.dumps(result)
+    }
+
+This python script is for EC2 for start and stop of Instances:
+
+import json
+import boto3 
+def lambda_handler(event, context):     region = 'ap-south-1'
+    client = boto3.client("ec2", region_name=region)
+    status = client.describe_instance_status(IncludeAllInstances = True) 
+    for i in status["InstanceStatuses"]:      
+        instaId = list(i["InstanceId"].split(" "))         if i["InstanceState"]["Name"] == "running":             print("Instances status : ", i["InstanceState"]["Name"])             client.stop_instances(InstanceIds=instaId)             print("Stopping the instance",i["InstanceId"])           elif i["InstanceState"]["Name"] == "stopped":             print("Instances status : ", i["InstanceState"]["Name"])             client.terminate_instances(InstanceIds=instaId)             print("Terminating the instance",i["InstanceId"])  
+        elif i["InstanceState"]["Name"] == "terminated":             print("Terminated the instance",i["InstanceId"])
+        else:             print("Please wait for the instance to be stopped or running state")         print("\n")     return {         'statusCode': 200,
+    }
+8. In the search bar type SES and create a verified identity.
+9. Now verify the identity by clicking on the link.
+10. Now, again search for s3 and create a bucket in the same region as the lambda function.
+11. Go to properties and create an event by giving required details.
+12. Click on the create event.
+13. Upload a object or file to the s3 bucket.
+14. Lambda function is triggered when you upload a object or file to the s3 bucket.
+15. Now, go check your mail for the triggering mail.
